@@ -1,13 +1,33 @@
 package controllers
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"fmt"
 
-func SSEController(context *fiber.Ctx) error {
+	"github.com/firminoneto11/sse-server/shared"
+	"github.com/gofiber/fiber/v2"
+)
+
+// This function can be used to create new Controllers
+func NewController(connectedClients *shared.ConnectedClients) Controller {
+	return Controller{connectedClients: connectedClients}
+}
+
+type Controller struct {
+	connectedClients *shared.ConnectedClients
+}
+
+func (c *Controller) SSEHandler(context *fiber.Ctx) error {
+
+	connectedClients := c.connectedClients
+
+	connectedClients.AddClient(1, "hello!")
+	fmt.Println(connectedClients.GetConnectedClients())
+
 	response := "Hello World!"
 	return context.SendString(response)
 }
 
-func NewEventController(context *fiber.Ctx) error {
+func (c *Controller) NewEventHandler(context *fiber.Ctx) error {
 	response := "Hello World!"
 	return context.SendString(response)
 }

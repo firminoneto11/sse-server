@@ -1,8 +1,12 @@
 package main
 
-import apiConf "github.com/firminoneto11/sse-server/api/conf"
+import (
+	apiConf "github.com/firminoneto11/sse-server/api/conf"
+	"github.com/firminoneto11/sse-server/shared"
+)
 
 func main() {
-	app := apiConf.GetApp()
+	var connectedClients shared.ConnectedClients
+	app := apiConf.GetApp(&connectedClients)
 	app.Listen(apiConf.GetPort())
 }
