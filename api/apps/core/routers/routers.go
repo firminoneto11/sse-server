@@ -6,6 +6,7 @@ import (
 )
 
 func AddRouter(app *fiber.App) {
-	router := app.Group("/sse")
-	router.Get("/", controllers.Hello)
+	router := app.Group("/api")
+	router.Get("/sse/", controllers.SSEController)
+	router.Post("/new-event/", controllers.NewEventController)
 }
