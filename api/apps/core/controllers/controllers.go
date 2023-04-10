@@ -21,7 +21,7 @@ func (c *Controller) SSEHandler(context *fiber.Ctx) error {
 	connectedClients := c.connectedClients
 
 	connectedClients.AddClient(1, "hello!")
-	fmt.Println(connectedClients.GetConnectedClients())
+	fmt.Println(connectedClients.IsConnected(1))
 
 	response := "Hello World!"
 	return context.SendString(response)
