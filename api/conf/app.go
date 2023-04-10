@@ -11,3 +11,8 @@ func GetApp() *fiber.App {
 	setRouters(app)
 	return app
 }
+
+func GetPort() string {
+	// TODO: Make this as an env variable set in the 'settings' file
+	return ":8000"
+}
