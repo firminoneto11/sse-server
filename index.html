@@ -15,12 +15,15 @@
       document.addEventListener("DOMContentLoaded", () => {
         const div = document.getElementById("events");
 
-        const es = new EventSource("http://localhost:8000/api/sse/", {
-          headers: {
-            "X-Api-Key": "123asd",
-            "X-User-Id": "10",
-          },
+        const queryString = new URLSearchParams({
+          key: "123asd",
+          id: 10,
         });
+        const sseEndpoint = `http://localhost:8000/api/sse/?${queryString.toString()}`;
+
+        console.log(sseEndpoint);
+
+        const es = new EventSource(sseEndpoint);
 
         es.addEventListener("backendTaskReady", (event) => {
           console.log(event);

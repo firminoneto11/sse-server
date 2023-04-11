@@ -19,13 +19,9 @@ type Controller struct {
 }
 
 func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
-	context.Set("Content-Type", "text/event-stream")
-	context.Set("Cache-Control", "no-cache")
-	context.Set("Connection", "keep-alive")
-
 	const eventName string = "backendTaskReady"
 
-	apiKey, userIdStr := context.Get("X-Api-Key"), context.Get("X-User-Id")
+	apiKey, userIdStr := context.Query("key"), context.Query("id")
 
 	if apiKey == "" || userIdStr == "" {
 		fmt.Println("1")
@@ -37,6 +33,10 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 		fmt.Println("2")
 		return context.SendString("Invalid headers set.")
 	}
+
+	context.Set("Content-Type", "text/event-stream")
+	context.Set("Cache-Control", "no-cache")
+	context.Set("Connection", "keep-alive")
 
 	// Connecting the client and deferring its disconnection
 	contr.connectedClients.ConnectClient(userId, apiKey)
@@ -58,8 +58,6 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 		for eventData := range clientChannel {
 			// Send the message to the client as a SSE
 			response := fmt.Sprintf("event: %s\ndata: "+eventData+"\n\n", eventName)
-
-			// context.Send([]byte(response))
 			context.SendString(response)
 		}
 	}()

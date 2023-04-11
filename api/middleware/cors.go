@@ -7,9 +7,8 @@ import (
 
 func SetCors(app *fiber.App) {
 	config := cors.Config{
-		AllowOrigins:     "http://127.0.0.1:5500",
-		AllowHeaders:     "X-Api-Key,X-User-Id",
-		AllowCredentials: true,
+		AllowOrigins: "*",
+		AllowHeaders: "*",
 	}
 	app.Use(cors.New(config))
 }
