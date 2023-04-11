@@ -11,6 +11,6 @@ func AddRouter(app *fiber.App, connectedClients *shared.ConnectedClients) {
 
 	controller := controllers.NewController(connectedClients)
 
-	router.Post("/sse/", controller.SSEHandler)
+	router.Get("/sse/", controller.SSEHandler)
 	router.Post("/new-event/", controller.NewEventHandler)
 }

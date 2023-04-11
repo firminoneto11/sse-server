@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	var connectedClients shared.ConnectedClients
+	connectedClients := shared.NewConnectedClients()
 	app := apiConf.GetApp(&connectedClients)
 	app.Listen(apiConf.GetPort())
 }

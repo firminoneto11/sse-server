@@ -1,56 +1,69 @@
 package shared
 
-import "sync"
+import (
+	"sync"
+)
+
+// This function can be used to create the new ConnectedClients instance
+func NewConnectedClients() ConnectedClients {
+	return ConnectedClients{
+		clients: make(map[int]*Client),
+	}
+}
 
 type Client struct {
 	id     int
 	apiKey string
+	events chan string
 }
 
 type ConnectedClients struct {
-	clients []Client
+	clients map[int]*Client
 	mutex   sync.RWMutex
 }
 
 func (c *ConnectedClients) IsConnected(id int) bool {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	for _, client := range c.clients {
-		if client.id == id {
-			return true
-		}
-	}
-	return false
+	_, ok := c.clients[id]
+	return ok
 }
 
-func (c *ConnectedClients) AddClient(id int, apiKey string) {
+func (c *ConnectedClients) ConnectClient(id int, apiKey string) {
+	if c.IsConnected(id) {
+		c.DisconnectClient(id)
+	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.clients = append(c.clients, Client{id: id, apiKey: apiKey})
+	c.clients[id] = &Client{id: id, apiKey: apiKey, events: make(chan string, 10)}
 }
 
 func (c *ConnectedClients) DisconnectClient(id int) {
-	removeItem := func(array []Client, elementIdx int) []Client {
-		return append(array[:elementIdx], array[elementIdx+1:]...)
-	}
-
-	findIndex := func(array []Client, element int) int {
-		for idx, client := range array {
-			if client.id == element {
-				return idx
-			}
-		}
-		return -1
-	}
-
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-
-	desiredIndex := findIndex(c.clients, id)
-	if desiredIndex < 0 {
-		return
+	client, ok := c.clients[id]
+	if ok {
+		close(client.events)
+		delete(c.clients, id)
 	}
+}
 
-	c.clients = removeItem(c.clients, desiredIndex)
+// func (c *ConnectedClients) SendEvent(id int, data string) {
+// 	if !c.IsConnected(id) {
+// 		return
+// 	}
+// 	c.mutex.Lock()
+// 	defer c.mutex.Unlock()
+// 	client := c.clients[id]
+// 	client.events <- data
+// }
 
+func (c *ConnectedClients) GetClientChannel(id int) chan string {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	client, ok := c.clients[id]
+	if !ok {
+		return nil
+	}
+	return client.events
 }

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SSE</title>
+  </head>
+  <body>
+    <h1>Welcome to the page!</h1>
+    <hr />
+    <h2>Events (In order of appearance)</h2>
+    <div id="events"></div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const div = document.getElementById("events");
+
+        const es = new EventSource("http://localhost:8000/api/sse/", {
+          headers: {
+            "X-Api-Key": "123asd",
+            "X-User-Id": "10",
+          },
+        });
+
+        es.addEventListener("backendTaskReady", (event) => {
+          console.log(event);
+          const newNode = document.createElement("p");
+          newNode.innerText = event.data;
+          div.appendChild(newNode);
+        });
+      });
+    </script>
+  </body>
+</html>
