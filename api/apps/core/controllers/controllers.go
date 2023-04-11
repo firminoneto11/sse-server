@@ -34,6 +34,7 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 		return context.SendString("Invalid headers set.")
 	}
 
+	// Upgrading the HTTP connection to be in the SSE format
 	context.Set("Content-Type", "text/event-stream")
 	context.Set("Cache-Control", "no-cache")
 	context.Set("Connection", "keep-alive")

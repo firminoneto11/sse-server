@@ -21,8 +21,6 @@
         });
         const sseEndpoint = `http://localhost:8000/api/sse/?${queryString.toString()}`;
 
-        console.log(sseEndpoint);
-
         const es = new EventSource(sseEndpoint);
 
         es.addEventListener("backendTaskReady", (event) => {
