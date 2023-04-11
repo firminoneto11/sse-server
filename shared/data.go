@@ -31,7 +31,7 @@ func (c *ConnectedClients) IsConnected(id int) bool {
 
 func (c *ConnectedClients) ConnectClient(id int, apiKey string) {
 	if c.IsConnected(id) {
-		c.DisconnectClient(id)
+		return
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

@@ -24,13 +24,11 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 	apiKey, userIdStr := context.Query("key"), context.Query("id")
 
 	if apiKey == "" || userIdStr == "" {
-		fmt.Println("1")
 		return context.SendString("Invalid headers set.")
 	}
 
 	userId, err := strconv.Atoi(userIdStr)
 	if err != nil {
-		fmt.Println("2")
 		return context.SendString("Invalid headers set.")
 	}
 
@@ -46,21 +44,21 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 	// Channel that will receive the data
 	clientChannel := contr.connectedClients.GetClientChannel(userId)
 	if clientChannel == nil {
-		fmt.Println("3")
 		return context.SendString("Client has disconnected.")
 	}
 
 	// Channel that will be used to signal when the client has disconnected
-	connectedChannel := make(chan struct{})
+	disconnected := make(chan bool)
+	defer close(disconnected)
 
 	// Goroutine that listens to the client's events channel and sends them to the browser
 	go func() {
-		defer close(connectedChannel)
 		for eventData := range clientChannel {
 			// Send the message to the client as a SSE
 			response := fmt.Sprintf("event: %s\ndata: "+eventData+"\n\n", eventName)
 			context.SendString(response)
 		}
+		disconnected <- true
 	}()
 
 	// Just for testing...
@@ -72,7 +70,7 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 	}()
 
 	select {
-	case <-connectedChannel:
+	case <-disconnected:
 		fmt.Println("Client disconnected")
 	case <-context.Context().Done():
 		fmt.Println("Request cancelled")
