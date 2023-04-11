@@ -56,17 +56,18 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 		for eventData := range clientChannel {
 			// Send the message to the client as a SSE
 			response := fmt.Sprintf("event: %s\ndata: "+eventData+"\n\n", eventName)
+			fmt.Println(response)
 			context.SendString(response)
 		}
-		disconnected <- true
 	}()
 
 	// Just for testing...
 	go func() {
-		for {
-			clientChannel <- "Hey mr..."
+		for i := 0; i < 10; i++ {
+			contr.connectedClients.SendEvent(userId, "Hey dude!")
 			time.Sleep(time.Second)
 		}
+		disconnected <- true
 	}()
 
 	select {

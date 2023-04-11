@@ -48,15 +48,15 @@ func (c *ConnectedClients) DisconnectClient(id int) {
 	}
 }
 
-// func (c *ConnectedClients) SendEvent(id int, data string) {
-// 	if !c.IsConnected(id) {
-// 		return
-// 	}
-// 	c.mutex.Lock()
-// 	defer c.mutex.Unlock()
-// 	client := c.clients[id]
-// 	client.events <- data
-// }
+func (c *ConnectedClients) SendEvent(id int, data string) {
+	if !c.IsConnected(id) {
+		return
+	}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	client := c.clients[id]
+	client.events <- data
+}
 
 func (c *ConnectedClients) GetClientChannel(id int) chan string {
 	c.mutex.RLock()
