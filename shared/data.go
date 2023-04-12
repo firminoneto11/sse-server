@@ -11,10 +11,15 @@ func NewConnectedClients() ConnectedClients {
 	}
 }
 
+type Event struct {
+	Name string
+	Data string
+}
+
 type Client struct {
 	id     int
 	apiKey string
-	events chan string
+	events chan Event
 }
 
 type ConnectedClients struct {
@@ -35,7 +40,7 @@ func (c *ConnectedClients) ConnectClient(id int, apiKey string) {
 	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	c.clients[id] = &Client{id: id, apiKey: apiKey, events: make(chan string, 10)}
+	c.clients[id] = &Client{id: id, apiKey: apiKey, events: make(chan Event, 10)}
 }
 
 func (c *ConnectedClients) DisconnectClient(id int) {
@@ -48,7 +53,7 @@ func (c *ConnectedClients) DisconnectClient(id int) {
 	}
 }
 
-func (c *ConnectedClients) SendEvent(id int, data string) {
+func (c *ConnectedClients) SendEvent(id int, data Event) {
 	if !c.IsConnected(id) {
 		return
 	}
@@ -58,7 +63,7 @@ func (c *ConnectedClients) SendEvent(id int, data string) {
 	client.events <- data
 }
 
-func (c *ConnectedClients) GetClientChannel(id int) chan string {
+func (c *ConnectedClients) GetClientChannel(id int) chan Event {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	client, ok := c.clients[id]

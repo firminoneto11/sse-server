@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"bufio"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/firminoneto11/sse-server/shared"
 	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/fasthttp"
 )
 
 // This function can be used to create new Controllers
@@ -18,9 +19,7 @@ type Controller struct {
 	connectedClients *shared.ConnectedClients
 }
 
-func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
-	const eventName string = "backendTaskReady"
-
+func (ctr *Controller) SSEHandler(context *fiber.Ctx) error {
 	apiKey, userIdStr := context.Query("key"), context.Query("id")
 
 	if apiKey == "" || userIdStr == "" {
@@ -36,51 +35,45 @@ func (contr *Controller) SSEHandler(context *fiber.Ctx) error {
 	context.Set("Content-Type", "text/event-stream")
 	context.Set("Cache-Control", "no-cache")
 	context.Set("Connection", "keep-alive")
+	context.Set("Transfer-Encoding", "chunked")
 
-	// Connecting the client and deferring its disconnection
-	contr.connectedClients.ConnectClient(userId, apiKey)
-	defer contr.connectedClients.DisconnectClient(userId)
+	// Connecting the client
+	ctr.connectedClients.ConnectClient(userId, apiKey)
 
 	// Channel that will receive the data
-	clientChannel := contr.connectedClients.GetClientChannel(userId)
+	clientChannel := ctr.connectedClients.GetClientChannel(userId)
 	if clientChannel == nil {
 		return context.SendString("Client has disconnected.")
 	}
 
-	// Channel that will be used to signal when the client has disconnected
-	disconnected := make(chan bool)
-	defer close(disconnected)
+	streamWriter := fasthttp.StreamWriter(
+		func(ioWriter *bufio.Writer) {
+			fmt.Println("New SSE Connection stablish!")
+			for event := range clientChannel {
+				// Send the message to the client as a SSE
+				message := fmt.Sprintf("event: %s\ndata: "+event.Data+"\n\n", event.Name)
+				fmt.Fprint(ioWriter, message)
 
-	// Goroutine that listens to the client's events channel and sends them to the browser
-	go func() {
-		for eventData := range clientChannel {
-			// Send the message to the client as a SSE
-			response := fmt.Sprintf("event: %s\ndata: "+eventData+"\n\n", eventName)
-			fmt.Println(response)
-			context.SendString(response)
-		}
-	}()
+				err := ioWriter.Flush()
+				if err != nil {
+					// Refreshing page in web browser will establish a new SSE connection, but only (the last) one is alive, so
+					// dead connections must be closed here.
+					fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
+					break
+				}
+			}
+			ctr.connectedClients.DisconnectClient(userId)
+		},
+	)
 
-	// Just for testing...
-	go func() {
-		for i := 0; i < 10; i++ {
-			contr.connectedClients.SendEvent(userId, "Hey dude!")
-			time.Sleep(time.Second)
-		}
-		disconnected <- true
-	}()
-
-	select {
-	case <-disconnected:
-		fmt.Println("Client disconnected")
-	case <-context.Context().Done():
-		fmt.Println("Request cancelled")
-	}
+	// Starts streaming inside this goroutine
+	context.Context().SetBodyStreamWriter(streamWriter)
 
 	return nil
 }
 
 func (contr *Controller) NewEventHandler(context *fiber.Ctx) error {
-	response := "Hello World!"
-	return context.SendString(response)
+	event := shared.Event{Name: "backendTaskReady", Data: "Hey bro!"}
+	go contr.connectedClients.SendEvent(10, event)
+	return context.SendString("Ok")
 }

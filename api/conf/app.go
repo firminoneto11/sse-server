@@ -20,5 +20,5 @@ func GetApp(connectedClients *shared.ConnectedClients) *fiber.App {
 
 func GetPort() string {
 	// TODO: Make this as an env variable set in the 'settings' file
-	return ":8000"
+	return ":8007"
 }

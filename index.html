@@ -19,7 +19,7 @@
           key: "123asd",
           id: 10,
         });
-        const sseEndpoint = `http://localhost:8000/api/sse/?${queryString.toString()}`;
+        const sseEndpoint = `http://localhost:8007/api/sse/?${queryString.toString()}`;
 
         const es = new EventSource(sseEndpoint);
 
