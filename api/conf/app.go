@@ -7,13 +7,16 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func GetApp(connectedClients *shared.ConnectedClients) *fiber.App {
+func GetApp(clients *shared.ConnectedClients) *fiber.App {
 	app := fiber.New()
+
+	// NOTE: The amount of middleware is likely to increase, so you should refactor this later to a function that sets the middleware for
+	// example.
 	apiMiddleware.SetCors(app)
 
 	// NOTE: The amount of routers for each app is likely to increase, so you should refactor this later to a function that sets
 	// routers for example.
-	coreRouters.AddRouter(app, connectedClients)
+	coreRouters.AddRouter(app, clients)
 
 	return app
 }

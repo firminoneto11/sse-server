@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/firminoneto11/sse-server/shared"
 	"github.com/gofiber/fiber/v2"
@@ -11,12 +12,12 @@ import (
 )
 
 // This function can be used to create new Controllers
-func NewController(connectedClients *shared.ConnectedClients) Controller {
-	return Controller{connectedClients: connectedClients}
+func NewController(clients *shared.ConnectedClients) Controller {
+	return Controller{clients: clients}
 }
 
 type Controller struct {
-	connectedClients *shared.ConnectedClients
+	clients *shared.ConnectedClients
 }
 
 func (ctr *Controller) SSEHandler(context *fiber.Ctx) error {
@@ -37,14 +38,11 @@ func (ctr *Controller) SSEHandler(context *fiber.Ctx) error {
 	context.Set("Connection", "keep-alive")
 	context.Set("Transfer-Encoding", "chunked")
 
-	// Connecting the client
-	ctr.connectedClients.ConnectClient(userId, apiKey)
-
 	// Channel that will receive the data
-	clientChannel := ctr.connectedClients.GetClientChannel(userId)
-	if clientChannel == nil {
-		return context.SendString("Client has disconnected.")
-	}
+	clientChannel := make(chan shared.Event)
+
+	// Connecting this client
+	ctr.clients.ConnectClient(userId, &clientChannel)
 
 	streamWriter := fasthttp.StreamWriter(
 		func(ioWriter *bufio.Writer) {
@@ -56,13 +54,12 @@ func (ctr *Controller) SSEHandler(context *fiber.Ctx) error {
 
 				err := ioWriter.Flush()
 				if err != nil {
-					// Refreshing page in web browser will establish a new SSE connection, but only (the last) one is alive, so
-					// dead connections must be closed here.
 					fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
+					ctr.clients.DisconnectClient(userId, &clientChannel)
+					close(clientChannel)
 					break
 				}
 			}
-			ctr.connectedClients.DisconnectClient(userId)
 		},
 	)
 
@@ -72,8 +69,15 @@ func (ctr *Controller) SSEHandler(context *fiber.Ctx) error {
 	return nil
 }
 
-func (contr *Controller) NewEventHandler(context *fiber.Ctx) error {
+func (ctr *Controller) NewEventHandler(context *fiber.Ctx) error {
 	event := shared.Event{Name: "backendTaskReady", Data: "Hey bro!"}
-	go contr.connectedClients.SendEvent(10, event)
+
+	go func() {
+		for {
+			ctr.clients.BroadCastEvent(10, event)
+			time.Sleep(time.Second)
+		}
+	}()
+
 	return context.SendString("Ok")
 }

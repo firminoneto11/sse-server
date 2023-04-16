@@ -4,22 +4,20 @@ import (
 	"sync"
 )
 
-// This function can be used to create the new ConnectedClients instance
-func NewConnectedClients() ConnectedClients {
-	return ConnectedClients{
-		clients: make(map[int]*Client),
-	}
-}
-
 type Event struct {
 	Name string
 	Data string
 }
 
 type Client struct {
-	id     int
-	apiKey string
-	events chan Event
+	Channels []*chan Event
+}
+
+// This function can be used to craft the new ConnectedClients instances
+func NewConnectedClients() ConnectedClients {
+	return ConnectedClients{
+		clients: make(map[int]*Client),
+	}
 }
 
 type ConnectedClients struct {
@@ -27,48 +25,70 @@ type ConnectedClients struct {
 	mutex   sync.RWMutex
 }
 
-func (c *ConnectedClients) IsConnected(id int) bool {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	_, ok := c.clients[id]
-	return ok
-}
+func (cc *ConnectedClients) IsConnected(id int) bool {
+	cc.mutex.RLock()
+	defer cc.mutex.RUnlock()
 
-func (c *ConnectedClients) ConnectClient(id int, apiKey string) {
-	if c.IsConnected(id) {
-		return
-	}
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.clients[id] = &Client{id: id, apiKey: apiKey, events: make(chan Event, 10)}
-}
+	client, ok := cc.clients[id]
 
-func (c *ConnectedClients) DisconnectClient(id int) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	client, ok := c.clients[id]
-	if ok {
-		close(client.events)
-		delete(c.clients, id)
-	}
-}
-
-func (c *ConnectedClients) SendEvent(id int, data Event) {
-	if !c.IsConnected(id) {
-		return
-	}
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	client := c.clients[id]
-	client.events <- data
-}
-
-func (c *ConnectedClients) GetClientChannel(id int) chan Event {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	client, ok := c.clients[id]
 	if !ok {
-		return nil
+		return false
 	}
-	return client.events
+
+	return len(client.Channels) > 0
+}
+
+func (cc *ConnectedClients) ConnectClient(id int, channel *chan Event) {
+	if cc.IsConnected(id) {
+		cc.mutex.Lock()
+		defer cc.mutex.Unlock()
+
+		client := cc.clients[id]
+		client.Channels = append(client.Channels, channel)
+
+		return
+	}
+
+	cc.mutex.Lock()
+	defer cc.mutex.Unlock()
+
+	client := Client{Channels: make([]*chan Event, 0)}
+	client.Channels = append(client.Channels, channel)
+
+	cc.clients[id] = &client
+}
+
+func (cc *ConnectedClients) DisconnectClient(id int, channel *chan Event) {
+	cc.mutex.Lock()
+	defer cc.mutex.Unlock()
+
+	client, ok := cc.clients[id]
+
+	if ok {
+		for index, ch := range client.Channels {
+			if ch == channel {
+				client.Channels = append(client.Channels[:index], client.Channels[index+1:]...)
+				break
+			}
+		}
+
+		if len(client.Channels) == 0 {
+			delete(cc.clients, id)
+		}
+	}
+}
+
+func (cc *ConnectedClients) BroadCastEvent(id int, data Event) {
+	if !cc.IsConnected(id) {
+		return
+	}
+
+	cc.mutex.Lock()
+	defer cc.mutex.Unlock()
+
+	client := cc.clients[id]
+
+	for _, ch := range client.Channels {
+		(*ch) <- data
+	}
 }

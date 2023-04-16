@@ -6,10 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func AddRouter(app *fiber.App, connectedClients *shared.ConnectedClients) {
+func AddRouter(app *fiber.App, clients *shared.ConnectedClients) {
 	router := app.Group("/api")
 
-	controller := controllers.NewController(connectedClients)
+	controller := controllers.NewController(clients)
 
 	router.Get("/sse/", controller.SSEHandler)
 	router.Post("/new-event/", controller.NewEventHandler)
