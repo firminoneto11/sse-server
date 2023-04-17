@@ -11,7 +11,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// This function can be used to create new Controllers
 func NewController(clients *shared.ConnectedClients) Controller {
 	return Controller{clients: clients}
 }
@@ -44,19 +43,35 @@ func (ctr *Controller) SSEHandler(context *fiber.Ctx) error {
 	// Connecting this client
 	ctr.clients.ConnectClient(userId, &clientChannel)
 
+	disconnectChan := func() {
+		ctr.clients.DisconnectClient(userId, &clientChannel)
+		_, ok := <-clientChannel
+		if ok {
+			close(clientChannel)
+		}
+	}
+
 	streamWriter := fasthttp.StreamWriter(
 		func(ioWriter *bufio.Writer) {
-			fmt.Println("New SSE Connection stablish!")
+
+			go func() {
+				for {
+					fmt.Fprintf(ioWriter, "event: heartbeat\n\n")
+					err := ioWriter.Flush()
+					if err != nil {
+						disconnectChan()
+						break
+					}
+					time.Sleep(time.Second)
+				}
+			}()
+
 			for event := range clientChannel {
-				// Send the message to the client as a SSE
 				message := fmt.Sprintf("event: %s\ndata: "+event.Data+"\n\n", event.Name)
 				fmt.Fprint(ioWriter, message)
-
 				err := ioWriter.Flush()
 				if err != nil {
-					fmt.Printf("Error while flushing: %v. Closing http connection.\n", err)
-					ctr.clients.DisconnectClient(userId, &clientChannel)
-					close(clientChannel)
+					disconnectChan()
 					break
 				}
 			}
