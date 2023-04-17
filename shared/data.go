@@ -70,7 +70,7 @@ func (cc *ConnectedClients) ConnectClient(id int, channel *chan Event) {
 		client.Channels = append(client.Channels, channel)
 
 		// NOTE: Debug purposes
-		fmt.Printf("Amount of different clients connected: %d\n", len(cc.clients))
+		fmt.Printf("\n\nAmount of different clients connected: %d\n", len(cc.clients))
 		for key, value := range cc.clients {
 			value.display(key)
 		}
@@ -88,7 +88,7 @@ func (cc *ConnectedClients) ConnectClient(id int, channel *chan Event) {
 	cc.clients[id] = &client
 
 	// NOTE: Debug purposes
-	fmt.Printf("Amount of different clients connected: %d\n", len(cc.clients))
+	fmt.Printf("\n\nAmount of different clients connected: %d\n", len(cc.clients))
 	for key, value := range cc.clients {
 		value.display(key)
 	}
@@ -116,7 +116,7 @@ func (cc *ConnectedClients) DisconnectClient(id int, channel *chan Event) {
 		}
 
 		// NOTE: Debug purposes
-		fmt.Printf("Amount of different clients connected: %d\n", len(cc.clients))
+		fmt.Printf("\n\nAmount of different clients connected: %d\n", len(cc.clients))
 		for key, value := range cc.clients {
 			value.display(key)
 		}
