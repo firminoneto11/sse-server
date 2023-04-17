@@ -8,8 +8,7 @@ import (
 // This generic function loops through the slice and compares each element in it with the element passed to the second parameter.
 // Removes the first occurrence found and returns a new slice without the element.
 func removeFromArray[T comparable](slice []T, element T) []T {
-	sliceWithoutElement := make([]T, 0)
-	alreadyFound := false
+	sliceWithoutElement, alreadyFound := make([]T, 0), false
 	for _, value := range slice {
 		if value == element {
 			if alreadyFound {
